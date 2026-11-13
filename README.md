@@ -6,15 +6,37 @@ automatic retries, and timestamped plain-text logging.
 ## Requirements
 
 - Go 1.22 or newer
-- A Slack **user token** belonging to a workspace user allowed to manage custom
-  emoji
 - PNG, JPG, JPEG, or GIF emoji files
+- Credentials accepted by the configured emoji endpoint; see the compatibility
+  warning below
 
-Slack's documented `admin.emoji.add` method is Enterprise-only and accepts
-public image URLs rather than local files. Emoji Pounder uses Slack's workspace
-`emoji.add` multipart endpoint to support local files. This endpoint is not
-part of Slack's documented public Web API, so Slack may change or remove it.
-Bot tokens generally cannot manage workspace emoji.
+## Important Slack API compatibility warning
+
+Slack does not provide a supported custom-emoji upload API for apps installed
+on Free, Pro, or Business+ workspaces. There is no `emoji:write` OAuth scope.
+The workspace `emoji.add` endpoint used by this program is an undocumented
+Slack web-client endpoint. Modern Slack rejects normal bot (`xoxb`) and user
+OAuth (`xoxp`) app tokens at this endpoint.
+
+On those plans, the endpoint requires browser-session authentication rather
+than Slack App OAuth credentials. Browser authentication includes additional
+session credentials that this program does not currently accept. Consequently,
+the current version cannot upload emoji to a typical Free, Pro, or Business+
+workspace using a token from a Slack App. Do not assume that granting more app
+scopes will fix the authentication error.
+
+Enterprise Grid provides the documented `admin.emoji.add` method. It requires:
+
+- A **user token** with the `admin.teams:write` scope
+- Installation across the Enterprise organization by an Org Admin or Owner
+- Publicly reachable image URLs rather than direct local-file uploads
+
+The current local-file multipart uploader does not implement that Enterprise
+workflow. `emoji:read` only permits listing emoji and does not permit uploads.
+
+Browser-session automation would be unofficial, security-sensitive, and
+subject to breaking whenever Slack changes its web client. Never copy session
+cookies or tokens into shared files, commit them, or expose them in logs.
 
 Never commit a Slack token or put it in a shared shell-history file.
 
@@ -26,8 +48,12 @@ go build -o emoji-pounder .
 
 ## Usage
 
+The following command applies only when using an endpoint that accepts the
+provided bearer token. A normal Slack App token on Free, Pro, or Business+ will
+not work:
+
 ```shell
-emoji-pounder -slacktoken "xoxp-..." -path "./emoji"
+emoji-pounder -slacktoken "<endpoint-token>" -path "./emoji"
 ```
 
 Validate the directory without contacting Slack:
